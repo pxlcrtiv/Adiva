@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Tab } from '../types';
 
@@ -9,9 +10,9 @@ interface SideNavProps {
 
 const SideNav: React.FC<SideNavProps> = ({ tabs, activeTab, onTabChange }) => {
   return (
-    <nav className="hidden w-64 flex-col border-r border-secondary bg-surface p-4 md:flex">
+    <nav className="hidden w-64 flex-col border-r border-border-color bg-surface p-4 dark:border-dark-border-color dark:bg-dark-surface md:flex">
       <div className="mb-4 px-2 py-2">
-        <h1 className="text-xl font-bold text-text-primary">ADIVA AI ✨</h1>
+        <h1 className="text-xl font-bold text-text-primary dark:text-dark-text-primary">ADIVA AI ✨</h1>
       </div>
       <div className="flex flex-col space-y-1">
         {tabs.map((tab) => (
@@ -21,7 +22,7 @@ const SideNav: React.FC<SideNavProps> = ({ tabs, activeTab, onTabChange }) => {
             className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-base font-medium transition-colors duration-200 ${
               activeTab.id === tab.id
                 ? 'bg-primary text-white'
-                : 'text-text-secondary hover:bg-secondary hover:text-text-primary'
+                : 'text-text-secondary hover:bg-secondary hover:text-text-primary dark:text-dark-text-secondary dark:hover:bg-dark-secondary dark:hover:text-dark-text-primary'
             }`}
             aria-current={activeTab.id === tab.id}
           >

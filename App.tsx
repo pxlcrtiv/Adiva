@@ -7,13 +7,18 @@ import GenerateScreen from './components/GenerateScreen';
 import HistoryScreen from './components/HistoryScreen';
 import FavoritesScreen from './components/FavoritesScreen';
 import ImageEditorScreen from './components/ImageEditorScreen';
+import LoadingOverlay from './components/LoadingOverlay';
+import ToastContainer from './components/Toast';
 import { Ad, Tab } from './types';
 import { TABS } from './constants';
+import { useTheme, useAppLoading } from './contexts';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>(TABS[0]);
   const [ads, setAds] = useState<Ad[]>([]);
   const [favorites, setFavorites] = useState<string[]>([]);
+  const { theme } = useTheme();
+  const { isAppLoading, setIsAppLoading } = useAppLoading();
 
   useEffect(() => {
     try {
@@ -25,7 +30,6 @@ const App: React.FC = () => {
       if (storedFavorites) {
         setFavorites(JSON.parse(storedFavorites));
       }
-    // Fix: Corrected a syntax error in the try...catch block.
     } catch (error) {
       console.error("Failed to parse from localStorage", error);
     }
@@ -45,8 +49,18 @@ const App: React.FC = () => {
     const adWithId: Ad = { ...newAd, id: Date.now().toString(), isFavorite: false };
     const updatedAds = [adWithId, ...ads];
     saveAds(updatedAds);
-    setActiveTab(TABS[2]); // Switch to history tab after generation
   };
+  
+  const handleTabChange = useCallback((newTab: Tab) => {
+    if (newTab.id === activeTab.id) return;
+
+    setIsAppLoading(true);
+    // Short delay to show loading and make navigation feel deliberate
+    setTimeout(() => {
+        setActiveTab(newTab);
+        setIsAppLoading(false);
+    }, 300);
+  }, [activeTab.id, setIsAppLoading]);
 
   const toggleFavorite = useCallback((adId: string) => {
     let updatedFavorites: string[];
@@ -80,17 +94,19 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-brand-bg text-text-primary font-sans antialiased md:p-6 lg:p-8">
-      <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden border-secondary shadow-2xl md:h-auto md:min-h-[calc(100vh-4rem)] md:max-w-7xl md:flex-row md:rounded-2xl md:border">
-        <SideNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className={`${theme} bg-brand-bg text-text-primary dark:bg-dark-brand-bg dark:text-dark-text-primary font-sans antialiased md:p-6 lg:p-8`}>
+      {isAppLoading && <LoadingOverlay />}
+      <ToastContainer />
+      <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden border-border-color shadow-2xl dark:border-dark-border-color md:h-auto md:min-h-[calc(100vh-4rem)] md:max-w-7xl md:flex-row md:rounded-2xl md:border">
+        <SideNav tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
         <div className="relative flex flex-1 flex-col overflow-hidden">
           <Header title={activeTab.label} />
-          <main className="flex-1 overflow-y-auto bg-brand-bg pb-20 pt-16 md:pb-4">
+          <main className="flex-1 overflow-y-auto bg-brand-bg dark:bg-dark-brand-bg pb-20 pt-16 md:pb-4">
             <div className="mx-auto h-full max-w-4xl">
               {renderScreen()}
             </div>
           </main>
-          <BottomNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+          <BottomNav tabs={TABS} activeTab={activeTab} onTabChange={handleTabChange} />
         </div>
       </div>
     </div>

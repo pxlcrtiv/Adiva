@@ -7,6 +7,7 @@ export interface Ad {
   callToAction: string;
   hashtags: string[];
   isFavorite: boolean;
+  imageUrl?: string;
 }
 
 export interface AdContent {
@@ -21,3 +22,5 @@ export interface Tab {
   label: string;
   icon: React.ComponentType<{ className?: string }>;
 }
+
+export type Theme = 'light' | 'dark';

@@ -73,6 +73,40 @@ export const generateAdCopy = async (
   }
 };
 
+export const generateAdImage = async (
+  productName: string,
+  description: string,
+  audience: string
+): Promise<string> => {
+  const prompt = `Create a visually appealing and professional advertisement image for a product.
+  Product Name: "${productName}"
+  Description: "${description}"
+  Target Audience: "${audience}"
+  The image should be high-quality, vibrant, and suitable for a social media ad campaign. Focus on the product's essence and appeal to the target demographic. Do not include any text, logos, or brand names in the image.`;
+
+  try {
+    const response = await ai.models.generateImages({
+      model: 'imagen-4.0-generate-001',
+      prompt: prompt,
+      config: {
+        numberOfImages: 1,
+        outputMimeType: 'image/png',
+        aspectRatio: '1:1',
+      },
+    });
+
+    if (!response.generatedImages || response.generatedImages.length === 0) {
+      throw new Error("Image generation failed, no images returned.");
+    }
+    const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
+    return `data:image/png;base64,${base64ImageBytes}`;
+  } catch (error) {
+    console.error("Error generating ad image:", error);
+    throw new Error("Failed to generate ad image. Please try again.");
+  }
+};
+
+
 export const generateOrEditImage = async (
   prompt: string,
   images: { mimeType: string; data: string }[]

@@ -1,7 +1,8 @@
 
 import React, { useState, useCallback } from 'react';
 import { generateOrEditImage } from '../services/geminiService';
-import { LoadingIcon, ImageIcon, XIcon, SparklesIcon } from './icons';
+import { LoadingIcon, ImageIcon, XIcon, SparklesIcon, DownloadIcon } from './icons';
+import { useAppLoading, useToast } from '../contexts';
 
 interface GeneratedResult {
     imageUrl: string;
@@ -14,7 +15,6 @@ const fileToBase64 = (file: File): Promise<{ mimeType: string; data: string }> =
         reader.readAsDataURL(file);
         reader.onload = () => {
             const result = reader.result as string;
-            // "data:image/jpeg;base64,...."
             const parts = result.split(',');
             const mimeType = parts[0].split(':')[1].split(';')[0];
             const data = parts[1];
@@ -31,6 +31,9 @@ const ImageEditorScreen: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
     const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
 
+    const { setIsAppLoading } = useAppLoading();
+    const { showToast } = useToast();
+
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             setUploadedFiles(prev => [...prev, ...Array.from(event.target.files)]);
@@ -41,6 +44,16 @@ const ImageEditorScreen: React.FC = () => {
         setUploadedFiles(prev => prev.filter((_, index) => index !== indexToRemove));
     };
 
+    const handleDownload = (imageUrl: string) => {
+        const link = document.createElement('a');
+        link.href = imageUrl;
+        link.download = `adiva-ai-edited-image-${Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        showToast('Image downloaded!');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!prompt) {
@@ -48,8 +61,10 @@ const ImageEditorScreen: React.FC = () => {
             return;
         }
         setIsLoading(true);
+        setIsAppLoading(true);
         setError(null);
         setGeneratedResult(null);
+        const startTime = Date.now();
 
         try {
             const imagePayloads = await Promise.all(
@@ -62,7 +77,14 @@ const ImageEditorScreen: React.FC = () => {
         } catch (err) {
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
         } finally {
-            setIsLoading(false);
+            const elapsedTime = Date.now() - startTime;
+            const minLoadingTime = 1000; // 1 second
+            const remainingTime = minLoadingTime - elapsedTime;
+
+            setTimeout(() => {
+                setIsLoading(false);
+                setIsAppLoading(false);
+            }, remainingTime > 0 ? remainingTime : 0);
         }
     };
 
@@ -70,15 +92,15 @@ const ImageEditorScreen: React.FC = () => {
         <div className="flex flex-col p-4 space-y-6">
             <div className="flex flex-col gap-4">
                 <div>
-                    <label htmlFor="image-upload" className="block text-sm font-medium text-text-secondary mb-2">
+                    <label htmlFor="image-upload" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-2">
                         Upload Images (Optional)
                     </label>
                     <div className="flex items-center justify-center w-full">
-                        <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-secondary border-dashed rounded-lg cursor-pointer bg-surface hover:bg-secondary">
+                        <label htmlFor="image-upload" className="flex flex-col items-center justify-center w-full h-32 border-2 border-border-color border-dashed rounded-lg cursor-pointer bg-surface hover:bg-secondary dark:border-dark-border-color dark:bg-dark-surface dark:hover:bg-dark-secondary">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                                <ImageIcon className="w-8 h-8 mb-2 text-text-secondary" />
-                                <p className="mb-1 text-sm text-text-secondary"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                                <p className="text-xs text-text-secondary">PNG, JPG, GIF up to 10MB</p>
+                                <ImageIcon className="w-8 h-8 mb-2 text-text-secondary dark:text-dark-text-secondary" />
+                                <p className="mb-1 text-sm text-text-secondary dark:text-dark-text-secondary"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                                <p className="text-xs text-text-secondary dark:text-dark-text-secondary">PNG, JPG, GIF</p>
                             </div>
                             <input id="image-upload" type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
@@ -87,7 +109,7 @@ const ImageEditorScreen: React.FC = () => {
 
                 {uploadedFiles.length > 0 && (
                     <div>
-                        <h3 className="text-sm font-medium text-text-secondary mb-2">Image Previews</h3>
+                        <h3 className="text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-2">Image Previews</h3>
                         <div className="grid grid-cols-3 gap-2">
                             {uploadedFiles.map((file, index) => (
                                 <div key={index} className="relative">
@@ -102,7 +124,7 @@ const ImageEditorScreen: React.FC = () => {
                 )}
 
                 <div>
-                    <label htmlFor="prompt" className="block text-sm font-medium text-text-secondary mb-1">
+                    <label htmlFor="prompt" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">
                         Prompt
                     </label>
                     <textarea
@@ -111,7 +133,7 @@ const ImageEditorScreen: React.FC = () => {
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder={uploadedFiles.length > 0 ? "e.g., add a cat wearing a party hat" : "e.g., a photorealistic image of an astronaut riding a horse"}
                         rows={3}
-                        className="w-full rounded-lg border-2 border-secondary bg-surface p-3 text-text-primary focus:border-primary focus:outline-none"
+                        className="w-full rounded-lg border-2 border-border-color bg-surface p-3 text-text-primary focus:border-primary focus:outline-none dark:border-dark-border-color dark:bg-dark-surface dark:text-dark-text-primary"
                     />
                 </div>
             </div>
@@ -139,10 +161,20 @@ const ImageEditorScreen: React.FC = () => {
 
             {generatedResult && (
                 <div className="mt-4 flex flex-col items-center gap-4 animate-fade-in">
-                    <h2 className="text-lg font-bold text-text-primary">Result</h2>
-                    <img src={generatedResult.imageUrl} alt="Generated image" className="rounded-lg max-w-full h-auto shadow-lg" />
+                    <h2 className="text-lg font-bold text-text-primary dark:text-dark-text-primary">Result</h2>
+                    <div className="relative group w-full max-w-md">
+                        <img src={generatedResult.imageUrl} alt="Generated image" className="rounded-lg w-full h-auto shadow-lg" />
+                        <button 
+                            onClick={() => handleDownload(generatedResult.imageUrl)}
+                            className="absolute top-2 right-2 flex items-center gap-1 rounded-full bg-black/50 px-3 py-1.5 text-xs font-semibold text-white opacity-0 transition-opacity group-hover:opacity-100"
+                            aria-label="Download Image"
+                        >
+                            <DownloadIcon className="h-4 w-4" />
+                            <span>Download</span>
+                        </button>
+                    </div>
                     {generatedResult.textResponse && (
-                         <p className="text-text-secondary text-center p-3 bg-surface rounded-lg">{generatedResult.textResponse}</p>
+                         <p className="text-text-secondary dark:text-dark-text-secondary text-center p-3 bg-surface dark:bg-dark-surface rounded-lg">{generatedResult.textResponse}</p>
                     )}
                 </div>
             )}

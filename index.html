@@ -8,17 +8,47 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
-              'brand-bg': '#121212',
-              'surface': '#1e1e1e',
+              // Light Theme (Default)
+              'brand-bg': '#F4F4F5', // zinc-100
+              'surface': '#FFFFFF', // white
               'primary': '#6A5AF9',
               'primary-hover': '#5A4AF8',
-              'secondary': '#2e2e2e',
-              'text-primary': '#E0E0E0',
-              'text-secondary': '#A0A0A0',
+              'secondary': '#E4E4E7', // zinc-200, for hover states, button bgs
+              'text-primary': '#18181B', // zinc-900
+              'text-secondary': '#71717A', // zinc-500
+              'border-color': '#D4D4D8', // zinc-300
+
+              // Dark Theme Colors (Amoled)
+              'dark-brand-bg': '#000000',
+              'dark-surface': '#111111',
+              'dark-secondary': '#222222',
+              'dark-text-primary': '#E0E0E0',
+              'dark-text-secondary': '#A0A0A0',
+              'dark-border-color': '#2f2f2f',
             },
+            keyframes: {
+              'fade-in': {
+                '0%': { opacity: '0', transform: 'translateY(10px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              'toast-in': {
+                'from': { transform: 'translateY(100%) scale(0.9)', opacity: '0' },
+                'to': { transform: 'translateY(0) scale(1)', opacity: '1' },
+              },
+              'toast-out': {
+                'from': { transform: 'translateY(0) scale(1)', opacity: '1' },
+                'to': { transform: 'translateY(100%) scale(0.9)', opacity: '0' },
+              }
+            },
+            animation: {
+              'fade-in': 'fade-in 0.5s ease-out forwards',
+              'toast-in': 'toast-in 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards',
+              'toast-out': 'toast-out 0.3s cubic-bezier(0.21, 1.02, 0.73, 1) forwards',
+            }
           },
         },
       }
@@ -29,12 +59,13 @@
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.17.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/"
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.1.1"
   }
 }
 </script>
 </head>
-  <body class="bg-brand-bg">
+  <body class="bg-brand-bg dark:bg-dark-brand-bg">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>
