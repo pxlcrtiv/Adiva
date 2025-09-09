@@ -85,21 +85,30 @@ export const generateAdImage = async (
   The image should be high-quality, vibrant, and suitable for a social media ad campaign. Focus on the product's essence and appeal to the target demographic. Do not include any text, logos, or brand names in the image.`;
 
   try {
-    const response = await ai.models.generateImages({
-      model: 'imagen-4.0-generate-001',
-      prompt: prompt,
-      config: {
-        numberOfImages: 1,
-        outputMimeType: 'image/png',
-        aspectRatio: '1:1',
-      },
+    const textPart = { text: prompt };
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash-image-preview',
+        contents: { parts: [textPart] },
+        config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
     });
 
-    if (!response.generatedImages || response.generatedImages.length === 0) {
-      throw new Error("Image generation failed, no images returned.");
+    if (!response.candidates || response.candidates.length === 0) {
+      throw new Error("The AI did not return a valid response.");
     }
-    const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-    return `data:image/png;base64,${base64ImageBytes}`;
+    
+    let imageUrl = '';
+    for (const part of response.candidates[0].content.parts) {
+      if (part.inlineData) {
+        const base64ImageBytes: string = part.inlineData.data;
+        imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+        break; 
+      }
+    }
+
+    if (!imageUrl) {
+      throw new Error("The AI did not return an image. Please try a different prompt.");
+    }
+    return imageUrl;
   } catch (error) {
     console.error("Error generating ad image:", error);
     throw new Error("Failed to generate ad image. Please try again.");
@@ -112,58 +121,41 @@ export const generateOrEditImage = async (
   images: { mimeType: string; data: string }[]
 ): Promise<{ imageUrl: string; textResponse?: string }> => {
   try {
-    if (images.length === 0) {
-      // Text-to-image generation
-      const response = await ai.models.generateImages({
-        model: 'imagen-4.0-generate-001',
-        prompt: prompt,
-        config: {
-          numberOfImages: 1,
-          outputMimeType: 'image/png',
-          aspectRatio: '1:1',
-        },
-      });
+    const imageParts = images.map(image => ({
+      inlineData: { data: image.data, mimeType: image.mimeType },
+    }));
+    const textPart = { text: prompt };
 
-      if (!response.generatedImages || response.generatedImages.length === 0) {
-        throw new Error("Image generation failed, no images returned.");
-      }
-      const base64ImageBytes: string = response.generatedImages[0].image.imageBytes;
-      return { imageUrl: `data:image/png;base64,${base64ImageBytes}` };
-    } else {
-      // Image editing
-      const imageParts = images.map(image => ({
-        inlineData: { data: image.data, mimeType: image.mimeType },
-      }));
-      const textPart = { text: prompt };
+    const parts = images.length > 0 ? [...imageParts, textPart] : [textPart];
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash-image-preview',
-        contents: { parts: [...imageParts, textPart] },
-        config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
-      });
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash-image-preview',
+      contents: { parts: parts },
+      config: { responseModalities: [Modality.IMAGE, Modality.TEXT] },
+    });
 
-      let imageUrl = '';
-      let textResponse = '';
+    let imageUrl = '';
+    let textResponse = '';
 
-      if (!response.candidates || response.candidates.length === 0) {
-         throw new Error("The AI did not return a valid response.");
-      }
-
-      for (const part of response.candidates[0].content.parts) {
-        if (part.text) {
-          textResponse += part.text + ' ';
-        } else if (part.inlineData) {
-          const base64ImageBytes: string = part.inlineData.data;
-          imageUrl = `data:image/png;base64,${base64ImageBytes}`;
-        }
-      }
-
-      if (!imageUrl) {
-        throw new Error("The AI did not return an image. Please try a different prompt.");
-      }
-      
-      return { imageUrl, textResponse: textResponse.trim() };
+    if (!response.candidates || response.candidates.length === 0) {
+       throw new Error("The AI did not return a valid response.");
     }
+
+    for (const part of response.candidates[0].content.parts) {
+      if (part.text) {
+        textResponse += part.text + ' ';
+      } else if (part.inlineData) {
+        const base64ImageBytes: string = part.inlineData.data;
+        imageUrl = `data:image/png;base64,${base64ImageBytes}`;
+      }
+    }
+
+    if (!imageUrl) {
+      throw new Error("The AI did not return an image. Please try a different prompt.");
+    }
+    
+    return { imageUrl, textResponse: textResponse.trim() };
+    
   } catch(error) {
     console.error("Error in image generation/editing:", error);
     const message = error instanceof Error ? error.message : "An unknown error occurred during image processing.";
