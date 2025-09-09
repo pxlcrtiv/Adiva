@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
+import SideNav from './components/SideNav';
 import GenerateScreen from './components/GenerateScreen';
 import HistoryScreen from './components/HistoryScreen';
 import FavoritesScreen from './components/FavoritesScreen';
@@ -44,7 +45,7 @@ const App: React.FC = () => {
     const adWithId: Ad = { ...newAd, id: Date.now().toString(), isFavorite: false };
     const updatedAds = [adWithId, ...ads];
     saveAds(updatedAds);
-    setActiveTab(TABS[1]); // Switch to history tab after generation
+    setActiveTab(TABS[2]); // Switch to history tab after generation
   };
 
   const toggleFavorite = useCallback((adId: string) => {
@@ -79,13 +80,18 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="bg-brand-bg text-text-primary font-sans antialiased">
-      <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden border-x border-secondary shadow-2xl">
-        <Header title={activeTab.label} />
-        <main className="flex-1 overflow-y-auto pb-20 pt-16">
-          {renderScreen()}
-        </main>
-        <BottomNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+    <div className="bg-brand-bg text-text-primary font-sans antialiased md:p-6 lg:p-8">
+      <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden border-secondary shadow-2xl md:h-auto md:min-h-[calc(100vh-4rem)] md:max-w-7xl md:flex-row md:rounded-2xl md:border">
+        <SideNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        <div className="relative flex flex-1 flex-col overflow-hidden">
+          <Header title={activeTab.label} />
+          <main className="flex-1 overflow-y-auto bg-brand-bg pb-20 pt-16 md:pb-4">
+            <div className="mx-auto h-full max-w-4xl">
+              {renderScreen()}
+            </div>
+          </main>
+          <BottomNav tabs={TABS} activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
       </div>
     </div>
   );

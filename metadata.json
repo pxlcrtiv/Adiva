@@ -1,5 +1,5 @@
 {
-  "name": "Ad Generator",
+  "name": "ADIVA AI",
   "description": "A mobile-first web application that uses AI to generate compelling ad copy for various platforms. Users can input product details and target audience to receive customized ad content, and save their favorite ads for future reference.",
   "requestFramePermissions": []
 }
