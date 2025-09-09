@@ -94,7 +94,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`${theme} bg-brand-bg text-text-primary dark:bg-dark-brand-bg dark:text-dark-text-primary font-sans antialiased md:p-6 lg:p-8`}>
+    <div className={`${theme} animate-fade-in bg-brand-bg text-text-primary dark:bg-dark-brand-bg dark:text-dark-text-primary font-sans antialiased md:p-6 lg:p-8`}>
       {isAppLoading && <LoadingOverlay />}
       <ToastContainer />
       <div className="relative mx-auto flex h-screen max-w-md flex-col overflow-hidden border-border-color shadow-2xl dark:border-dark-border-color md:h-auto md:min-h-[calc(100vh-4rem)] md:max-w-7xl md:flex-row md:rounded-2xl md:border">
