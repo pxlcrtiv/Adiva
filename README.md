@@ -1,7 +1,3 @@
-<div align="center">
-<img width="1200" height="475" alt="Adiva AI - AI-Powered Ad Creation Platform" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
-
 # Adiva AI - AI-Powered Ad Creation Platform
 
 Adiva AI is a cutting-edge, AI-powered advertising creation platform that leverages Google's Gemini AI to generate compelling ad copy and stunning visuals for multiple social media platforms. Built with React and TypeScript, it provides marketers, entrepreneurs, and content creators with an intuitive interface to create professional-quality advertisements in seconds.
