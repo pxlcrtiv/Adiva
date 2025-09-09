@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { generateAdCopy, generateAdImage } from '../services/geminiService';
 import { Ad, AdContent } from '../types';
 import { PLATFORMS } from '../constants';
@@ -21,11 +20,54 @@ const GenerateScreen: React.FC<GenerateScreenProps> = ({ onAdGenerated }) => {
   const [description, setDescription] = useState('');
   const [audience, setAudience] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [apiError, setApiError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState({ productName: '', description: '', audience: '' });
   const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
 
   const { setIsAppLoading } = useAppLoading();
   const { showToast } = useToast();
+
+  const validateForm = () => {
+    const newErrors = { productName: '', description: '', audience: '' };
+    let isValid = true;
+
+    if (productName.trim().length < 3) {
+        newErrors.productName = 'Product name must be at least 3 characters.';
+        isValid = false;
+    } else if (productName.trim().length > 100) {
+        newErrors.productName = 'Product name must be 100 characters or less.';
+        isValid = false;
+    }
+
+    if (description.trim().length < 10) {
+        newErrors.description = 'Description must be at least 10 characters.';
+        isValid = false;
+    } else if (description.trim().length > 500) {
+        newErrors.description = 'Description must be 500 characters or less.';
+        isValid = false;
+    }
+
+    if (audience.trim().length < 3) {
+        newErrors.audience = 'Audience must be at least 3 characters.';
+        isValid = false;
+    } else if (audience.trim().length > 100) {
+        newErrors.audience = 'Audience must be 100 characters or less.';
+        isValid = false;
+    }
+    setFormErrors(newErrors);
+    return isValid;
+  };
+
+  const isFormValid = useMemo(() => {
+    return (
+      productName.trim().length >= 3 &&
+      productName.trim().length <= 100 &&
+      description.trim().length >= 10 &&
+      description.trim().length <= 500 &&
+      audience.trim().length >= 3 &&
+      audience.trim().length <= 100
+    );
+  }, [productName, description, audience]);
 
   const handleDownload = (imageUrl: string) => {
     const link = document.createElement('a');
@@ -44,13 +86,12 @@ const GenerateScreen: React.FC<GenerateScreenProps> = ({ onAdGenerated }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!productName || !description || !audience) {
-      setError('Please fill out all fields.');
+    if (!validateForm()) {
       return;
     }
     setIsLoading(true);
     setIsAppLoading(true);
-    setError(null);
+    setApiError(null);
     setGeneratedResult(null);
     const startTime = Date.now();
     try {
@@ -63,10 +104,9 @@ const GenerateScreen: React.FC<GenerateScreenProps> = ({ onAdGenerated }) => {
       onAdGenerated(newAd);
       setGeneratedResult({ adContent, imageUrl });
 
-      // Do not reset form, user might want to tweak it
     } catch (err) {
       const message = err instanceof Error ? err.message : 'An unknown error occurred.';
-      setError(`An error occurred during generation: ${message}`);
+      setApiError(`An error occurred during generation: ${message}`);
     } finally {
       const elapsedTime = Date.now() - startTime;
       const minLoadingTime = 1000; // 1 second
@@ -107,21 +147,33 @@ const GenerateScreen: React.FC<GenerateScreenProps> = ({ onAdGenerated }) => {
                     id="productName"
                     type="text"
                     value={productName}
-                    onChange={(e) => setProductName(e.target.value)}
+                    onChange={(e) => {
+                        setProductName(e.target.value);
+                        if(formErrors.productName) setFormErrors(p => ({...p, productName: ''}))
+                    }}
                     placeholder="e.g., Eco-Friendly Water Bottle"
-                    className="w-full rounded-lg border-2 border-border-color bg-surface p-3 text-text-primary focus:border-primary focus:outline-none dark:border-dark-border-color dark:bg-dark-surface dark:text-dark-text-primary"
+                    className={`w-full rounded-lg border-2 bg-surface p-3 text-text-primary focus:outline-none dark:bg-dark-surface dark:text-dark-text-primary ${
+                        formErrors.productName ? 'border-red-500 focus:border-red-500' : 'border-border-color focus:border-primary dark:border-dark-border-color'
+                    }`}
                 />
+                {formErrors.productName && <p className="mt-1 text-sm text-red-500">{formErrors.productName}</p>}
             </div>
             <div>
                 <label htmlFor="description" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Product Description</label>
                 <textarea
                     id="description"
                     value={description}
-                    onChange={(e) => setDescription(e.target.value)}
+                    onChange={(e) => {
+                        setDescription(e.target.value);
+                        if(formErrors.description) setFormErrors(p => ({...p, description: ''}))
+                    }}
                     placeholder="Briefly describe your product and its key features."
                     rows={4}
-                    className="w-full rounded-lg border-2 border-border-color bg-surface p-3 text-text-primary focus:border-primary focus:outline-none dark:border-dark-border-color dark:bg-dark-surface dark:text-dark-text-primary"
+                    className={`w-full rounded-lg border-2 bg-surface p-3 text-text-primary focus:outline-none dark:bg-dark-surface dark:text-dark-text-primary ${
+                        formErrors.description ? 'border-red-500 focus:border-red-500' : 'border-border-color focus:border-primary dark:border-dark-border-color'
+                    }`}
                 />
+                {formErrors.description && <p className="mt-1 text-sm text-red-500">{formErrors.description}</p>}
             </div>
             <div>
                 <label htmlFor="audience" className="block text-sm font-medium text-text-secondary dark:text-dark-text-secondary mb-1">Target Audience</label>
@@ -129,17 +181,23 @@ const GenerateScreen: React.FC<GenerateScreenProps> = ({ onAdGenerated }) => {
                     id="audience"
                     type="text"
                     value={audience}
-                    onChange={(e) => setAudience(e.target.value)}
+                    onChange={(e) => {
+                        setAudience(e.target.value);
+                        if(formErrors.audience) setFormErrors(p => ({...p, audience: ''}))
+                    }}
                     placeholder="e.g., Young professionals, fitness enthusiasts"
-                    className="w-full rounded-lg border-2 border-border-color bg-surface p-3 text-text-primary focus:border-primary focus:outline-none dark:border-dark-border-color dark:bg-dark-surface dark:text-dark-text-primary"
+                    className={`w-full rounded-lg border-2 bg-surface p-3 text-text-primary focus:outline-none dark:bg-dark-surface dark:text-dark-text-primary ${
+                        formErrors.audience ? 'border-red-500 focus:border-red-500' : 'border-border-color focus:border-primary dark:border-dark-border-color'
+                    }`}
                 />
+                {formErrors.audience && <p className="mt-1 text-sm text-red-500">{formErrors.audience}</p>}
             </div>
             
-            {error && <p className="text-sm text-red-500">{error}</p>}
+            {apiError && <p className="text-sm text-red-500">{apiError}</p>}
             
             <button
                 type="submit"
-                disabled={isLoading}
+                disabled={isLoading || !isFormValid}
                 className="mt-4 flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-base font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-opacity-50"
             >
                 {isLoading ? (

@@ -1,5 +1,4 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { generateOrEditImage } from '../services/geminiService';
 import { LoadingIcon, ImageIcon, XIcon, SparklesIcon, DownloadIcon } from './icons';
 import { useAppLoading, useToast } from '../contexts';
@@ -28,11 +27,17 @@ const ImageEditorScreen: React.FC = () => {
     const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
     const [prompt, setPrompt] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [apiError, setApiError] = useState<string | null>(null);
+    const [promptError, setPromptError] = useState('');
     const [generatedResult, setGeneratedResult] = useState<GeneratedResult | null>(null);
 
     const { setIsAppLoading } = useAppLoading();
     const { showToast } = useToast();
+
+    const isPromptValid = useMemo(() => {
+        const trimmedPrompt = prompt.trim();
+        return trimmedPrompt.length >= 5 && trimmedPrompt.length <= 1000;
+    }, [prompt]);
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -53,16 +58,29 @@ const ImageEditorScreen: React.FC = () => {
         document.body.removeChild(link);
         showToast('Image downloaded!');
     };
+    
+    const validatePrompt = () => {
+        const trimmedPrompt = prompt.trim();
+        if (trimmedPrompt.length < 5) {
+            setPromptError('Prompt must be at least 5 characters.');
+            return false;
+        }
+        if (trimmedPrompt.length > 1000) {
+            setPromptError('Prompt must be 1000 characters or less.');
+            return false;
+        }
+        setPromptError('');
+        return true;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!prompt) {
-            setError('Please enter a prompt to generate or edit an image.');
+        if (!validatePrompt()) {
             return;
         }
         setIsLoading(true);
         setIsAppLoading(true);
-        setError(null);
+        setApiError(null);
         setGeneratedResult(null);
         const startTime = Date.now();
 
@@ -75,7 +93,7 @@ const ImageEditorScreen: React.FC = () => {
             setGeneratedResult(result);
 
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+            setApiError(err instanceof Error ? err.message : 'An unknown error occurred.');
         } finally {
             const elapsedTime = Date.now() - startTime;
             const minLoadingTime = 1000; // 1 second
@@ -130,20 +148,26 @@ const ImageEditorScreen: React.FC = () => {
                     <textarea
                         id="prompt"
                         value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
+                        onChange={(e) => {
+                            setPrompt(e.target.value);
+                            if (promptError) setPromptError('');
+                        }}
                         placeholder={uploadedFiles.length > 0 ? "e.g., add a cat wearing a party hat" : "e.g., a photorealistic image of an astronaut riding a horse"}
                         rows={3}
-                        className="w-full rounded-lg border-2 border-border-color bg-surface p-3 text-text-primary focus:border-primary focus:outline-none dark:border-dark-border-color dark:bg-dark-surface dark:text-dark-text-primary"
+                        className={`w-full rounded-lg border-2 bg-surface p-3 text-text-primary focus:outline-none dark:bg-dark-surface dark:text-dark-text-primary ${
+                            promptError ? 'border-red-500 focus:border-red-500' : 'border-border-color focus:border-primary dark:border-dark-border-color'
+                        }`}
                     />
+                    {promptError && <p className="mt-1 text-sm text-red-500">{promptError}</p>}
                 </div>
             </div>
 
-            {error && <p className="text-sm text-red-500 text-center">{error}</p>}
+            {apiError && <p className="text-sm text-red-500 text-center">{apiError}</p>}
 
             <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={isLoading || !prompt}
+                disabled={isLoading || !isPromptValid}
                 className="flex items-center justify-center gap-2 rounded-full bg-primary py-4 text-base font-bold text-white transition-colors hover:bg-primary-hover disabled:cursor-not-allowed disabled:bg-opacity-50"
             >
                 {isLoading ? (
